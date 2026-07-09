@@ -1,0 +1,11 @@
+syntax = "proto3";
+package heraclitus.schemas.events;
+
+message BidDetectedEvent {
+  string bid_id = 1;
+  string tracking_code = 2; // Código PNCP/Processo
+  string buyer_organ = 3;   // Órgão Comprador
+  double estimated_value = 4;
+  int64 opening_date = 5;
+  bytes document_hash = 6;  // SHA-256 para o Ledger do HeraclitusDB
+}
