@@ -15,7 +15,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import pncp
@@ -27,6 +28,7 @@ from .radar import Radar
 from .scoring import CompatibilityScorer
 
 _FIX = Path(__file__).parent / "fixtures"
+_WEB = Path(__file__).parent / "web"
 _scorer = CompatibilityScorer()
 
 
@@ -108,3 +110,15 @@ def forecast_demo(ref_year: int = 2027, ref_month: int = 7, min_score: float = 0
     """Forecast de PCA sobre a fixture embutida — oportunidades antes do edital."""
     items = load_pca_fixture(_FIX / "sample_pca.json")
     return [o.to_dict() for o in ForecastEngine(_scorer).forecast(items, ref_year, ref_month, min_score)]
+
+
+# ── Frontend (SPA do Radar) ────────────────────────────────────────────────
+# A raiz serve o index.html; os restantes assets (css/js/svg) saem do mount
+# estático. Montado por ÚLTIMO para não ensombrar as rotas de API acima.
+if _WEB.is_dir():
+
+    @app.get("/", include_in_schema=False)
+    def index() -> FileResponse:
+        return FileResponse(_WEB / "index.html")
+
+    app.mount("/", StaticFiles(directory=str(_WEB), html=True), name="web")

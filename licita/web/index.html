@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Heraclitus Gov Radar — Licitações</title>
+  <meta name="description" content="Radar de licitações públicas: captura, scoring de compatibilidade e decisão Go/No-Go sobre editais do PNCP." />
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css?v=1" />
+</head>
+<body>
+  <!-- ░░ Top bar ░░ -->
+  <header class="topbar">
+    <a class="brand" href=".">
+      <svg class="brand-mark" viewBox="0 0 48 48" aria-hidden="true">
+        <defs>
+          <radialGradient id="sweep" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="var(--brand)" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="var(--brand)" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle cx="24" cy="24" r="21" class="radar-ring"/>
+        <circle cx="24" cy="24" r="13.5" class="radar-ring"/>
+        <circle cx="24" cy="24" r="6" class="radar-ring"/>
+        <line x1="24" y1="24" x2="45" y2="24" class="radar-cross"/>
+        <line x1="24" y1="24" x2="24" y2="3" class="radar-cross"/>
+        <g class="radar-sweep"><path d="M24 24 L24 3 A21 21 0 0 1 42 13 Z" fill="url(#sweep)"/></g>
+        <circle cx="35" cy="17" r="2.4" class="radar-blip"/>
+      </svg>
+      <span class="brand-text">
+        <strong>Heraclitus</strong> Gov Radar
+        <em>licitações públicas · PNCP</em>
+      </span>
+    </a>
+    <div class="topbar-actions">
+      <span class="status" id="apiStatus" title="Estado da API"><span class="dot"></span> <span id="apiStatusText">a ligar…</span></span>
+      <button class="icon-btn" id="themeToggle" title="Alternar tema" aria-label="Alternar tema">◐</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- ░░ Hero ░░ -->
+    <section class="hero">
+      <div>
+        <h1>Radar de Licitações</h1>
+        <p class="lede">Captura editais do PNCP, pontua a compatibilidade técnica e recomenda <b>participar</b>, <b>avaliar</b> ou <b>ignorar</b> — com decisão Go/No-Go cruzando o perfil da sua empresa.</p>
+      </div>
+      <div class="hero-panel" id="statStrip"><!-- stats injetadas --></div>
+    </section>
+
+    <!-- ░░ Tabs ░░ -->
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" data-tab="radar" role="tab">📡 Radar</button>
+      <button class="tab" data-tab="forecast" role="tab">🔭 Forecast (PCA)</button>
+      <button class="tab" data-tab="sim" role="tab">🧮 Simulador Go/No-Go</button>
+    </nav>
+
+    <!-- ░░ Radar ░░ -->
+    <section class="panel is-active" id="tab-radar" role="tabpanel">
+      <div class="toolbar">
+        <label class="slider">
+          Score mínimo <output id="minScoreOut">0</output>
+          <input type="range" id="minScore" min="0" max="100" step="5" value="0" />
+        </label>
+        <button class="btn" id="reloadRadar">Atualizar</button>
+      </div>
+      <div class="grid" id="radarGrid"><div class="empty">A carregar oportunidades…</div></div>
+    </section>
+
+    <!-- ░░ Forecast ░░ -->
+    <section class="panel" id="tab-forecast" role="tabpanel">
+      <div class="toolbar">
+        <span class="muted">Compras planeadas <b>antes do edital</b>, por janela temporal.</span>
+        <button class="btn" id="reloadForecast">Atualizar</button>
+      </div>
+      <div class="timeline" id="forecastGrid"><div class="empty">A carregar forecast…</div></div>
+    </section>
+
+    <!-- ░░ Simulador ░░ -->
+    <section class="panel" id="tab-sim" role="tabpanel">
+      <div class="sim-layout">
+        <form class="card sim-form" id="simForm">
+          <h3>Edital</h3>
+          <label>Objeto
+            <textarea id="f_objeto" rows="3" placeholder="Ex.: solução de auditoria e registro imutável de logs com rastreabilidade e conformidade LGPD…" required></textarea>
+          </label>
+          <div class="row2">
+            <label>Órgão <input id="f_orgao" placeholder="Ministério da Saúde" /></label>
+            <label>UF <input id="f_uf" placeholder="DF" maxlength="2" /></label>
+          </div>
+          <label>Texto do edital (opcional — habilita bloqueios)
+            <textarea id="f_texto" rows="2" placeholder="…capital social mínimo de R$ 3.000.000,00; atestado de 50 TB/dia…"></textarea>
+          </label>
+          <h3>Perfil da empresa</h3>
+          <div class="row2">
+            <label>Capital social (R$) <input id="p_capital" type="number" value="1500000" /></label>
+            <label>Volumetria (TB/dia) <input id="p_vol" type="number" value="20" /></label>
+          </div>
+          <button class="btn btn-primary" type="submit">Avaliar</button>
+        </form>
+        <div class="sim-result" id="simResult">
+          <div class="empty">Preencha o edital e clique <b>Avaliar</b> para ver o score e a decisão Go/No-Go.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <span>Heraclitus Gov Radar · scoring determinístico e explicável · ledger append-only no HeraclitusDB</span>
+    <a href="docs" target="_blank" rel="noopener">API / OpenAPI ↗</a>
+  </footer>
+
+  <script src="app.js?v=1"></script>
+</body>
+</html>
