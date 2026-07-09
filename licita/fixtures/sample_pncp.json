@@ -1,0 +1,39 @@
+{
+  "data": [
+    {
+      "numeroControlePNCP": "00394460000141-1-000123/2026",
+      "objetoCompra": "Contratação de solução de auditoria e registro imutável de logs (event sourcing) com rastreabilidade criptográfica e conformidade LGPD para trilha de auditoria do prontuário eletrônico.",
+      "orgaoEntidade": { "razaoSocial": "Ministério da Saúde", "poderId": "E" },
+      "unidadeOrgao": { "ufSigla": "DF", "municipioNome": "Brasília" },
+      "valorTotalEstimado": 14200000.0,
+      "modalidadeNome": "Pregão Eletrônico",
+      "dataAberturaProposta": "2026-08-01T09:00:00",
+      "linkSistemaOrigem": "https://www.gov.br/compras/edital/ms-123-2026",
+      "informacaoComplementar": "Exige banco de dados com alta disponibilidade, API REST e observabilidade.",
+      "itens": [
+        { "descricao": "Plataforma de logs imutáveis com prova de Merkle e assinatura digital ICP-Brasil." }
+      ]
+    },
+    {
+      "numeroControlePNCP": "00394460000141-1-000200/2026",
+      "objetoCompra": "Aquisição de banco de dados relacional corporativo e serviço de observabilidade (monitoramento e métricas) para o data lake institucional.",
+      "orgaoEntidade": { "razaoSocial": "SERPRO" },
+      "unidadeOrgao": { "ufSigla": "DF" },
+      "valorTotalEstimado": 8900000.0,
+      "modalidadeNome": "Pregão Eletrônico",
+      "dataAberturaProposta": "2026-08-05T14:00:00",
+      "linkSistemaOrigem": "https://www.gov.br/compras/edital/serpro-200-2026",
+      "informacaoComplementar": "Big data, segurança da informação."
+    },
+    {
+      "numeroControlePNCP": "00394460000141-1-000305/2026",
+      "objetoCompra": "Aquisição de material de limpeza e higiene para as unidades administrativas.",
+      "orgaoEntidade": { "razaoSocial": "Prefeitura Municipal de Exemplo" },
+      "unidadeOrgao": { "ufSigla": "SP" },
+      "valorTotalEstimado": 120000.0,
+      "modalidadeNome": "Pregão Eletrônico",
+      "dataAberturaProposta": "2026-08-03T10:00:00",
+      "linkSistemaOrigem": "https://www.gov.br/compras/edital/pme-305-2026"
+    }
+  ]
+}

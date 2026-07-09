@@ -1,3 +1,2 @@
-# Domínio de Negócio: PROCUREMENT
-
-Este contexto delimitado segue regras puras de DDD e Arquitetura Hexagonal.
+# Domínio: procurement
+Regras de negócio isoladas.

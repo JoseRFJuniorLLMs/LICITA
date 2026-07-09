@@ -1,3 +1,2 @@
-# Domínio de Negócio: PROPOSALS
-
-Este contexto delimitado segue regras puras de DDD e Arquitetura Hexagonal.
+# Domínio: proposals
+Regras de negócio isoladas.

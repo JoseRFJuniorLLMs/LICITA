@@ -1,3 +1,3 @@
 # Heraclitus Platform
 
-Monorepo central da plataforma enterprise nacional Heraclitus.
+Monorepo unificado para a plataforma enterprise.
