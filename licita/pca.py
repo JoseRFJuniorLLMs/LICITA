@@ -121,7 +121,84 @@ def parse_pca_response(payload: dict[str, Any]) -> list[PcaItem]:
     items = payload.get("data") or payload.get("items") or payload.get("itens") or []
     if not isinstance(items, list):
         return []
-    return [parse_pca_item(it) for it in items if isinstance(it, dict)]
+    out: list[PcaItem] = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        # Formato AO VIVO do /pca/usuario: cada entrada é um PLANO com `itens`
+        # aninhados; o órgão/ano vivem no plano, não no item. Achatamos,
+        # injetando o contexto do plano em cada item (validado contra a API
+        # real em 2026-07-09: plan keys anoPca/orgaoEntidadeRazaoSocial/...,
+        # subitem keys descricaoItem/dataDesejada/valorTotal/...).
+        subitens = it.get("itens")
+        if isinstance(subitens, list) and subitens:
+            orgao = it.get("orgaoEntidadeRazaoSocial") or it.get("nomeUnidade") or ""
+            ano_plano = it.get("anoPca")
+            plano_id = it.get("idPcaPncp") or ""
+            for sub in subitens:
+                if not isinstance(sub, dict):
+                    continue
+                enriched = dict(sub)
+                enriched.setdefault("orgao", orgao)
+                if ano_plano is not None:
+                    enriched.setdefault("anoPca", ano_plano)
+                if plano_id and not enriched.get("numeroControlePNCP"):
+                    enriched["numeroControlePNCP"] = f"{plano_id}#{sub.get('numeroItem', '')}"
+                # descricaoItem vem muitas vezes null; o nome do grupo de
+                # contratação é o texto útil para o scorer.
+                if not enriched.get("descricaoItem") and enriched.get("grupoContratacaoNome"):
+                    enriched["descricaoItem"] = enriched["grupoContratacaoNome"]
+                out.append(parse_pca_item(enriched))
+        else:
+            out.append(parse_pca_item(it))
+    return out
+
+
+class PcaClient:
+    """Busca itens de PCA ao vivo no PNCP (GET /pca/usuario). Injetável em testes."""
+
+    def __init__(self, base_url: str | None = None, timeout: float = 25.0) -> None:
+        from .pncp import PNCP_BASE
+
+        self.base_url = (base_url or PNCP_BASE).rstrip("/")
+        self.timeout = timeout
+
+    def _fetch_page(self, ano: int, id_usuario: int, pagina: int, tamanho_pagina: int) -> dict[str, Any]:
+        import urllib.parse
+        import urllib.request
+
+        params = {
+            "anoPca": ano,
+            "idUsuario": id_usuario,
+            "pagina": pagina,
+            "tamanhoPagina": max(10, tamanho_pagina),  # a API exige >= 10
+        }
+        url = f"{self.base_url}/pca/usuario?" + urllib.parse.urlencode(params)
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=self.timeout) as resp:  # noqa: S310 (gov host)
+            body = resp.read().decode("utf-8")
+        if not body.strip():
+            return {"data": [], "totalPaginas": 0}
+        return json.loads(body)
+
+    def fetch_pca(
+        self,
+        ano: int,
+        id_usuario: int = 3,
+        tamanho_pagina: int = 50,
+        max_paginas: int = 3,
+    ) -> list[PcaItem]:
+        """Itens de PCA do ano, até `max_paginas` (o universo é ENORME: >1M itens/ano)."""
+        out: list[PcaItem] = []
+        pagina = 1
+        while pagina <= max_paginas:
+            payload = self._fetch_page(ano, id_usuario, pagina, tamanho_pagina)
+            out.extend(parse_pca_response(payload))
+            total = payload.get("totalPaginas") or 0
+            if not isinstance(total, int) or pagina >= total:
+                break
+            pagina += 1
+        return out
 
 
 def load_pca_fixture(path: str | Path) -> list[PcaItem]:

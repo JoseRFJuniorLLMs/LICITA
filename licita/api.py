@@ -12,9 +12,11 @@ original), por isso são testáveis diretamente, sem httpx/servidor.
 
 from __future__ import annotations
 
+import time
+from datetime import date, timedelta
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -23,13 +25,32 @@ from . import pncp
 from .artifacts import generate_dossier
 from .decision import CompanyProfile, ViabilityEngine
 from .models import Edital
-from .pca import ForecastEngine, load_pca_fixture
+from .pca import ForecastEngine, PcaClient, load_pca_fixture
 from .radar import Radar
 from .scoring import CompatibilityScorer
 
 _FIX = Path(__file__).parent / "fixtures"
 _WEB = Path(__file__).parent / "web"
 _scorer = CompatibilityScorer()
+
+# Clientes AO VIVO (módulo-level de propósito: os testes injetam fakes aqui).
+_pncp_client = pncp.PNCPClient()
+_pca_client = PcaClient()
+
+# Cache TTL dos resultados live — o PNCP é lento (segundos/página) e público;
+# não martelamos a API deles a cada refresh do browser.
+_LIVE_TTL_SECS = 600.0
+_live_cache: dict[str, tuple[float, list[dict]]] = {}
+
+
+def _cached(key: str, builder) -> tuple[list[dict], bool]:
+    now = time.monotonic()
+    hit = _live_cache.get(key)
+    if hit and now - hit[0] < _LIVE_TTL_SECS:
+        return hit[1], True
+    rows = builder()
+    _live_cache[key] = (now, rows)
+    return rows, False
 
 
 class EditalIn(BaseModel):
@@ -110,6 +131,88 @@ def forecast_demo(ref_year: int = 2027, ref_month: int = 7, min_score: float = 0
     """Forecast de PCA sobre a fixture embutida — oportunidades antes do edital."""
     items = load_pca_fixture(_FIX / "sample_pca.json")
     return [o.to_dict() for o in ForecastEngine(_scorer).forecast(items, ref_year, ref_month, min_score)]
+
+
+# ── Endpoints AO VIVO (PNCP real) ──────────────────────────────────────────
+
+
+@app.get("/radar/live")
+def radar_live(
+    dias: int = 7,
+    modalidade: int | None = 6,
+    min_score: float = 0.0,
+    max_paginas: int = 3,
+) -> dict:
+    """Radar sobre contratações REAIS do PNCP nos últimos `dias`.
+
+    Pagina a API pública (até `max_paginas` × 50) e pontua tudo. Cache de 10 min
+    por janela. `modalidade=6` = Pregão Eletrônico; `modalidade=0` remove o filtro.
+    """
+    dias = max(1, min(dias, 30))
+    max_paginas = max(1, min(max_paginas, 10))
+    mod = modalidade if modalidade else None
+    fim = date.today()
+    inicio = fim - timedelta(days=dias)
+    key = f"radar:{inicio}:{fim}:{mod}:{max_paginas}"
+
+    def build() -> list[dict]:
+        editais = _pncp_client.fetch_contratacoes_all(
+            inicio.strftime("%Y%m%d"), fim.strftime("%Y%m%d"),
+            codigo_modalidade=mod, max_paginas=max_paginas,
+        )
+        return [o.to_dict() for o in Radar(_scorer).analyze(editais)]
+
+    try:
+        rows, from_cache = _cached(key, build)
+    except Exception as e:  # PNCP em baixo/lento → 502 explícito, não 500 anónimo
+        raise HTTPException(status_code=502, detail=f"PNCP indisponível: {e}")
+    return {
+        "items": [r for r in rows if r["score"]["value"] >= min_score],
+        "meta": {
+            "fonte": "pncp-live",
+            "janela": [inicio.isoformat(), fim.isoformat()],
+            "modalidade": mod,
+            "total_analisado": len(rows),
+            "cache": from_cache,
+        },
+    }
+
+
+@app.get("/forecast/live")
+def forecast_live(
+    ano: int = 0,
+    min_score: float = 0.0,
+    id_usuario: int = 3,
+    max_paginas: int = 2,
+) -> dict:
+    """Forecast sobre itens de PCA REAIS do PNCP (amostra paginada).
+
+    Honestidade: o universo de PCA é >1M itens/ano — isto é uma AMOSTRA de até
+    `max_paginas` × 50 planos, pontuada e classificada por janela temporal.
+    """
+    hoje = date.today()
+    ano = ano or hoje.year
+    max_paginas = max(1, min(max_paginas, 10))
+    key = f"pca:{ano}:{id_usuario}:{max_paginas}"
+
+    def build() -> list[dict]:
+        items = _pca_client.fetch_pca(ano, id_usuario=id_usuario, max_paginas=max_paginas)
+        return [o.to_dict() for o in ForecastEngine(_scorer).forecast(items, hoje.year, hoje.month, 0.0)]
+
+    try:
+        rows, from_cache = _cached(key, build)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"PNCP indisponível: {e}")
+    return {
+        "items": [r for r in rows if r["score"]["value"] >= min_score],
+        "meta": {
+            "fonte": "pncp-pca-live",
+            "ano": ano,
+            "amostra": True,
+            "total_analisado": len(rows),
+            "cache": from_cache,
+        },
+    }
 
 
 # ── Frontend (SPA do Radar) ────────────────────────────────────────────────

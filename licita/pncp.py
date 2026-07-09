@@ -101,6 +101,32 @@ class PNCPClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
+    def _fetch_page(
+        self,
+        data_inicial: str,
+        data_final: str,
+        pagina: int,
+        tamanho_pagina: int,
+        codigo_modalidade: int | None,
+    ) -> dict[str, Any]:
+        """Uma página crua da consulta (com o envelope: totalPaginas etc.)."""
+        params = {
+            "dataInicial": data_inicial,
+            "dataFinal": data_final,
+            "pagina": pagina,
+            # A API exige tamanhoPagina >= 10 (400 abaixo disso — validado ao vivo).
+            "tamanhoPagina": max(10, tamanho_pagina),
+        }
+        if codigo_modalidade is not None:
+            params["codigoModalidadeContratacao"] = codigo_modalidade
+        url = f"{self.base_url}/contratacoes/publicacao?" + urllib.parse.urlencode(params)
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=self.timeout) as resp:  # noqa: S310 (trusted gov host)
+            body = resp.read().decode("utf-8")
+        if not body.strip():  # PNCP devolve corpo vazio quando não há dados (204-like)
+            return {"data": [], "totalPaginas": 0}
+        return json.loads(body)
+
     def fetch_contratacoes(
         self,
         data_inicial: str,
@@ -109,20 +135,33 @@ class PNCPClient:
         tamanho_pagina: int = 50,
         codigo_modalidade: int | None = None,
     ) -> list[Edital]:
-        """GET /contratacoes/publicacao — janela [data_inicial, data_final] (YYYYMMDD)."""
-        params = {
-            "dataInicial": data_inicial,
-            "dataFinal": data_final,
-            "pagina": pagina,
-            "tamanhoPagina": tamanho_pagina,
-        }
-        if codigo_modalidade is not None:
-            params["codigoModalidadeContratacao"] = codigo_modalidade
-        url = f"{self.base_url}/contratacoes/publicacao?" + urllib.parse.urlencode(params)
-        req = urllib.request.Request(url, headers={"Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=self.timeout) as resp:  # noqa: S310 (trusted gov host)
-            payload = json.loads(resp.read().decode("utf-8"))
+        """GET /contratacoes/publicacao — UMA página da janela (YYYYMMDD)."""
+        payload = self._fetch_page(data_inicial, data_final, pagina, tamanho_pagina, codigo_modalidade)
         return parse_response(payload)
+
+    def fetch_contratacoes_all(
+        self,
+        data_inicial: str,
+        data_final: str,
+        codigo_modalidade: int | None = None,
+        tamanho_pagina: int = 50,
+        max_paginas: int = 5,
+    ) -> list[Edital]:
+        """Todas as páginas da janela, até `max_paginas` (proteção de custo/latência).
+
+        Usa o envelope da API (`totalPaginas`) para saber quando parar — a
+        versão de página única deixava dados para trás em janelas grandes.
+        """
+        out: list[Edital] = []
+        pagina = 1
+        while pagina <= max_paginas:
+            payload = self._fetch_page(data_inicial, data_final, pagina, tamanho_pagina, codigo_modalidade)
+            out.extend(parse_response(payload))
+            total = payload.get("totalPaginas") or 0
+            if not isinstance(total, int) or pagina >= total:
+                break
+            pagina += 1
+        return out
 
 
 def load_fixture(path: str | Path) -> list[Edital]:
