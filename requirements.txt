@@ -1,0 +1,7 @@
+# Runtime do Heraclitus Gov Radar (licita/)
+fastapi>=0.139
+pydantic>=2
+uvicorn>=0.30          # servir a API REST
+# Ingestão no HeraclitusDB (opcional — só para --heraclitus / HeraclitusEventStore):
+grpcio>=1.60
+# SDK: pip install -e <repo>/HeraclitusDB/sdk/python

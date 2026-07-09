@@ -1,0 +1,7 @@
+{
+  "capital_social": 2000000,
+  "volumetria_max_tb_dia": 30,
+  "garantia_max": 500000,
+  "certificacoes": ["ISO 27001"],
+  "prazo_confortavel_dias": 10
+}

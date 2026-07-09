@@ -13,7 +13,22 @@ dashboards, 5 SaaS): isso é roadmap. O scoring aqui é por palavras-chave
 from .models import Edital, CategoryHit, Score, ScoredOpportunity, Recommendation
 from .scoring import CompatibilityScorer, DEFAULT_TAXONOMY
 from .radar import Radar
+from .decision import (
+    CompanyProfile,
+    Decision,
+    ViabilityEngine,
+    ViabilityReport,
+    Blocker,
+    Requirement,
+)
 from .store import EventStore, InMemoryEventStore, JsonlEventStore, HeraclitusEventStore
+from .pca import (
+    PcaItem,
+    ForecastEngine,
+    ForecastedOpportunity,
+    ForecastWindow,
+)
+from .artifacts import generate_dossier, habilitation_checklist, executive_summary
 
 __all__ = [
     "Edital",
@@ -28,4 +43,17 @@ __all__ = [
     "InMemoryEventStore",
     "JsonlEventStore",
     "HeraclitusEventStore",
+    "CompanyProfile",
+    "Decision",
+    "ViabilityEngine",
+    "ViabilityReport",
+    "Blocker",
+    "Requirement",
+    "PcaItem",
+    "ForecastEngine",
+    "ForecastedOpportunity",
+    "ForecastWindow",
+    "generate_dossier",
+    "habilitation_checklist",
+    "executive_summary",
 ]

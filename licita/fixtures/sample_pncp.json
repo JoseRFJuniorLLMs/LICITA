@@ -9,7 +9,7 @@
       "modalidadeNome": "Pregão Eletrônico",
       "dataAberturaProposta": "2026-08-01T09:00:00",
       "linkSistemaOrigem": "https://www.gov.br/compras/edital/ms-123-2026",
-      "informacaoComplementar": "Exige banco de dados com alta disponibilidade, API REST e observabilidade.",
+      "informacaoComplementar": "Exige banco de dados com alta disponibilidade, API REST e observabilidade. Exige capital social mínimo de R$ 3.000.000,00 e atestado de volumetria de 50 TB/dia. Prazo de 5 dias úteis.",
       "itens": [
         { "descricao": "Plataforma de logs imutáveis com prova de Merkle e assinatura digital ICP-Brasil." }
       ]

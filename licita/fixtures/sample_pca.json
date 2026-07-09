@@ -1,0 +1,34 @@
+{
+  "data": [
+    {
+      "numeroControlePNCP": "PCA-00394460000141-2027-000045",
+      "descricao": "Aquisição de solução de auditoria e registro imutável de logs com rastreabilidade criptográfica (event sourcing) e conformidade LGPD para a plataforma de justiça.",
+      "orgaoEntidade": { "razaoSocial": "Ministério da Justiça e Segurança Pública" },
+      "unidadeOrgao": { "ufSigla": "DF" },
+      "valorTotal": 42000000.0,
+      "anoPca": 2027,
+      "mesPrevisto": 11,
+      "categoriaItemPcaNome": "Solução de TIC",
+      "informacaoComplementar": "Big data e observabilidade da malha de logs."
+    },
+    {
+      "numeroControlePNCP": "PCA-00394460000141-2027-000090",
+      "descricao": "Contratação de banco de dados relacional e serviço de observabilidade para o data lake institucional.",
+      "orgaoEntidade": { "razaoSocial": "DATAPREV" },
+      "unidadeOrgao": { "ufSigla": "RJ" },
+      "valorTotal": 12000000.0,
+      "dataDesejada": "2027-03-15",
+      "categoriaItemPcaNome": "Solução de TIC"
+    },
+    {
+      "numeroControlePNCP": "PCA-00394460000141-2027-000120",
+      "descricao": "Aquisição de mobiliário de escritório para as unidades administrativas.",
+      "orgaoEntidade": { "razaoSocial": "Prefeitura Municipal de Exemplo" },
+      "unidadeOrgao": { "ufSigla": "SP" },
+      "valorTotal": 350000.0,
+      "anoPca": 2027,
+      "mesPrevisto": 8,
+      "categoriaItemPcaNome": "Material de consumo"
+    }
+  ]
+}
