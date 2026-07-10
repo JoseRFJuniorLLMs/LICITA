@@ -26,7 +26,7 @@ class ApiTest(unittest.TestCase):
         self.assertEqual(health()["status"], "ok")
 
     def test_score_endpoint(self):
-        r = score_endpoint(EditalIn(objeto="auditoria e logs imutáveis, banco de dados, LGPD"))
+        r = score_endpoint(EditalIn(objeto="fábrica de software, banco de dados, firewall, nuvem, suporte tecnico"))
         self.assertGreaterEqual(r["value"], 40.0)
         self.assertIn("recommendation", r)
 

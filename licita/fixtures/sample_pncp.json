@@ -2,21 +2,21 @@
   "data": [
     {
       "numeroControlePNCP": "00394460000141-1-000123/2026",
-      "objetoCompra": "Contratação de solução de auditoria e registro imutável de logs (event sourcing) com rastreabilidade criptográfica e conformidade LGPD para trilha de auditoria do prontuário eletrônico.",
+      "objetoCompra": "Contratação de fábrica de software com infraestrutura em nuvem, segurança da informação e conformidade LGPD.",
       "orgaoEntidade": { "razaoSocial": "Ministério da Saúde", "poderId": "E" },
       "unidadeOrgao": { "ufSigla": "DF", "municipioNome": "Brasília" },
       "valorTotalEstimado": 14200000.0,
       "modalidadeNome": "Pregão Eletrônico",
       "dataAberturaProposta": "2026-08-01T09:00:00",
       "linkSistemaOrigem": "https://www.gov.br/compras/edital/ms-123-2026",
-      "informacaoComplementar": "Exige banco de dados com alta disponibilidade, API REST e observabilidade. Exige capital social mínimo de R$ 3.000.000,00 e atestado de volumetria de 50 TB/dia. Prazo de 5 dias úteis.",
+      "informacaoComplementar": "Exige banco de dados com alta disponibilidade, notebooks, switches, inteligencia artificial e suporte tecnico. Exige capital social mínimo de R$ 3.000.000,00 e atestado de volumetria de 50 TB/dia. Prazo de 5 dias úteis.",
       "itens": [
-        { "descricao": "Plataforma de logs imutáveis com prova de Merkle e assinatura digital ICP-Brasil." }
+        { "descricao": "Plataforma em cloud com firewall e assinatura digital ICP-Brasil." }
       ]
     },
     {
       "numeroControlePNCP": "00394460000141-1-000200/2026",
-      "objetoCompra": "Aquisição de banco de dados relacional corporativo e serviço de observabilidade (monitoramento e métricas) para o data lake institucional.",
+      "objetoCompra": "Aquisição de banco de dados relacional corporativo e serviço de nuvem (monitoramento e métricas) para o data lake institucional.",
       "orgaoEntidade": { "razaoSocial": "SERPRO" },
       "unidadeOrgao": { "ufSigla": "DF" },
       "valorTotalEstimado": 8900000.0,

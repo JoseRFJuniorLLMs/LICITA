@@ -24,6 +24,8 @@ class Edital:
     fonte: str = "pncp"
     url: str | None = None
     texto: str = ""  # objeto + descrição + itens, concatenado para o scorer
+    esfera: str | None = None  # federal | estadual | municipal | distrital
+    data_publicacao: str | None = None  # dataPublicacaoPncp (p/ "novas")
     raw: dict[str, Any] = field(default_factory=dict, repr=False)
 
     def searchable_text(self) -> str:

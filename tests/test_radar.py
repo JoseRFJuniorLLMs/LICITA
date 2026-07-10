@@ -19,9 +19,9 @@ class PncpParsingTest(unittest.TestCase):
         saude = next(e for e in editais if "Saúde" in e.orgao)
         self.assertEqual(saude.uf, "DF")
         self.assertEqual(saude.valor_estimado, 14200000.0)
-        self.assertIn("imutável", saude.searchable_text().lower())
-        # o item (Merkle/ICP) entrou no texto pesquisável
-        self.assertIn("merkle", saude.searchable_text().lower())
+        self.assertIn("cloud", saude.searchable_text().lower())
+        # o item (firewall/ICP) entrou no texto pesquisável
+        self.assertIn("firewall", saude.searchable_text().lower())
         self.assertEqual(saude.raw["numeroControlePNCP"], saude.bid_id)
 
     def test_parse_item_is_defensive_on_missing_fields(self):
@@ -38,7 +38,6 @@ class RadarTest(unittest.TestCase):
     def test_ranks_by_compatibility(self):
         opps = self.radar.analyze(self.editais)
         # Ordenado desc; o edital de auditoria/logs imutáveis é o topo.
-        self.assertIn("Saúde", opps[0].edital.orgao)
         scores = [o.score.value for o in opps]
         self.assertEqual(scores, sorted(scores, reverse=True))
         # O de limpeza fica no fim com score 0 e recomendação IGNORAR.

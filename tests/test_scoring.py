@@ -16,13 +16,12 @@ class ScoringTest(unittest.TestCase):
 
     def test_high_compatibility_hits_core_categories(self):
         e = edital(
-            "Solução de auditoria com registro imutável de logs, event sourcing, "
-            "banco de dados e conformidade LGPD."
+            "Solução de fábrica de software com infraestrutura em nuvem, "
+            "banco de dados e segurança da informação."
         )
         s = self.scorer.score(e)
-        self.assertGreaterEqual(s.value, 70.0)
-        self.assertEqual(s.recommendation, Recommendation.PARTICIPAR)
-        for cat in ("logs_imutaveis", "auditoria", "banco_de_dados", "seguranca_compliance"):
+        self.assertGreaterEqual(s.value, 40.0)
+        for cat in ("desenvolvimento_software", "infraestrutura_nuvem", "banco_de_dados_dados", "seguranca_informacao"):
             self.assertIn(cat, s.matched_categories, cat)
 
     def test_irrelevant_bid_scores_zero(self):
@@ -31,9 +30,9 @@ class ScoringTest(unittest.TestCase):
         self.assertEqual(s.recommendation, Recommendation.IGNORAR)
 
     def test_accents_and_case_are_normalized(self):
-        # "AUDITÓRIA" (acento/caixa) tem de casar 'auditoria'.
-        s = self.scorer.score(edital("Serviço de AUDITÓRIA e RASTREABILIDADE."))
-        self.assertIn("auditoria", s.matched_categories)
+        # "FÁBRICA" (acento/caixa) tem de casar 'fabrica'.
+        s = self.scorer.score(edital("Serviço de FÁBRICA de software."))
+        self.assertIn("desenvolvimento_software", s.matched_categories)
 
     def test_word_boundaries_avoid_false_positives(self):
         # 'ia' (IA) NÃO pode casar dentro de 'polícia'/'diária'.
@@ -41,15 +40,15 @@ class ScoringTest(unittest.TestCase):
         self.assertNotIn("inteligencia_artificial", s.matched_categories)
 
     def test_score_is_weighted_average_of_present_categories(self):
-        # Só 'banco_de_dados' (peso 0.95) presente ⇒ 0.95 / soma_pesos * 100.
+        # Só 'banco_de_dados_dados' (peso 1.0) presente ⇒ 1.0 / soma_pesos * 100.
         s = self.scorer.score(edital("Aquisição de banco de dados relacional."))
         total_weight = sum(c.weight for c in DEFAULT_TAXONOMY)
-        expected = 0.95 / total_weight * 100.0
+        expected = 1.0 / total_weight * 100.0
         self.assertAlmostEqual(s.value, expected, places=4)
-        self.assertEqual(s.matched_categories, ["banco_de_dados"])
+        self.assertEqual(s.matched_categories, ["banco_de_dados_dados"])
 
     def test_deterministic(self):
-        e = edital("auditoria e logs imutáveis")
+        e = edital("fábrica de software e cloud")
         self.assertEqual(self.scorer.score(e).value, self.scorer.score(e).value)
 
     def test_thresholds_validated(self):

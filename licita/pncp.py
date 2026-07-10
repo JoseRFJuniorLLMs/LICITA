@@ -46,6 +46,10 @@ def _build_pncp_url(item: dict[str, Any]) -> str | None:
     return None
 
 
+# orgaoEntidade.esferaId do PNCP (validado ao vivo 2026-07-10): F/E/M/D/N.
+_ESFERAS = {"F": "federal", "E": "estadual", "M": "municipal", "D": "distrital", "N": "nacional"}
+
+
 def parse_item(item: dict[str, Any]) -> Edital:
     """Normaliza um item da API do PNCP num `Edital`. Defensivo por design."""
     bid_id = (
@@ -81,6 +85,7 @@ def parse_item(item: dict[str, Any]) -> Edital:
         extra += "\n" + "\n".join(
             str(it.get("descricao", "")) for it in itens if isinstance(it, dict)
         )
+    esfera = _ESFERAS.get(str(_get(item, "orgaoEntidade", "esferaId") or item.get("esfera") or "").upper())
     return Edital(
         bid_id=str(bid_id),
         orgao=str(orgao),
@@ -92,6 +97,8 @@ def parse_item(item: dict[str, Any]) -> Edital:
         fonte="pncp",
         url=url,
         texto=str(extra).strip(),
+        esfera=esfera,
+        data_publicacao=item.get("dataPublicacaoPncp") or item.get("dataInclusao"),
         raw=item,
     )
 

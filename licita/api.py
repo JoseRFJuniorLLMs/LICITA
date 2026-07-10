@@ -12,19 +12,21 @@ original), por isso são testáveis diretamente, sem httpx/servidor.
 
 from __future__ import annotations
 
+import os
 import time
 from datetime import date, timedelta
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import pncp
+from . import mailer, pncp
 from .artifacts import generate_dossier
 from .decision import CompanyProfile, ViabilityEngine
 from .models import Edital
+from .participation import ConflictError, ParticipationStore
 from .pca import ForecastEngine, PcaClient, load_pca_fixture
 from .radar import Radar
 from .scoring import CompatibilityScorer
@@ -41,6 +43,11 @@ _pca_client = PcaClient()
 # não martelamos a API deles a cada refresh do browser.
 _LIVE_TTL_SECS = 600.0
 _live_cache: dict[str, tuple[float, list[dict]]] = {}
+
+# Utilizadores + participações (event-sourced, NDJSON). Diretório configurável
+# para o deploy (LICITA_DATA_DIR); default ./data relativo ao working dir.
+_DATA_DIR = Path(os.environ.get("LICITA_DATA_DIR", "data"))
+_participations = ParticipationStore(_DATA_DIR / "participations.ndjson")
 
 
 def _cached(key: str, builder) -> tuple[list[dict], bool]:
@@ -213,6 +220,69 @@ def forecast_live(
             "cache": from_cache,
         },
     }
+
+
+# ── Utilizadores & Participações ───────────────────────────────────────────
+
+
+class RegisterIn(BaseModel):
+    name: str
+    email: str
+
+
+class ClaimIn(BaseModel):
+    user_id: str
+    bid_id: str
+    edital: dict = Field(default_factory=dict)  # snapshot p/ o email/dossiê
+
+
+class ReleaseIn(BaseModel):
+    user_id: str
+    bid_id: str
+
+
+@app.post("/users/register")
+def register_user(body: RegisterIn) -> dict:
+    """Regista (ou reconhece) o utilizador. Idempotente por email."""
+    try:
+        return _participations.register_user(body.name, body.email).to_dict()
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+
+@app.get("/participations")
+def list_participations() -> list[dict]:
+    """Quem está a estudar o quê — visível a todos (evita estudo duplicado)."""
+    return [p.to_dict() for p in _participations.all_claims()]
+
+
+@app.post("/participations", status_code=201)
+def claim_participation(body: ClaimIn, background: BackgroundTasks) -> dict:
+    """Reclama a licitação para o utilizador (exclusivo) e envia-lhe o dossiê por email."""
+    try:
+        p = _participations.claim(body.bid_id, body.user_id, body.edital)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except ConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    user = _participations.get_user(body.user_id)
+    email_status = "skipped"
+    if user and body.edital:
+        assunto, corpo = mailer.build_participation_email(user.name, body.edital)
+        # Em background: o claim não espera pelo SMTP.
+        background.add_task(mailer.send_email, user.email, assunto, corpo, _DATA_DIR / "outbox")
+        email_status = "queued"
+    return {**p.to_dict(), "email": email_status}
+
+
+@app.post("/participations/release")
+def release_participation(body: ReleaseIn) -> dict:
+    """Liberta a licitação (só o dono)."""
+    try:
+        released = _participations.release(body.bid_id, body.user_id)
+    except ConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    return {"released": released}
 
 
 # ── Frontend (SPA do Radar) ────────────────────────────────────────────────

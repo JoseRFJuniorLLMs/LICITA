@@ -43,7 +43,7 @@ class HeraclitusStoreTest(unittest.TestCase):
         self.assertEqual(ep["kind"], "BidAnalyzed")
         self.assertEqual(ep["agent_id"], "licita-radar")
         # o objeto (não o órgão) vai no conteúdo do episódio
-        self.assertIn("auditoria", ep["content"].lower())
+        self.assertIn("fábrica", ep["content"].lower())
         self.assertEqual(ep["attrs"]["orgao"], opp.edital.orgao)  # órgão vai em attrs
         self.assertEqual(ep["attrs"]["recommendation"], "participar")
         self.assertEqual(ep["attrs"]["bid_id"], opp.edital.bid_id)

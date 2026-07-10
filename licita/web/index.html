@@ -6,7 +6,7 @@
   <title>Heraclitus Gov Radar — Licitações</title>
   <meta name="description" content="Radar de licitações públicas: captura, scoring de compatibilidade e decisão Go/No-Go sobre editais do PNCP." />
   <link rel="icon" href="logo.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=1" />
+  <link rel="stylesheet" href="styles.css?v=2" />
 </head>
 <body>
   <!-- ░░ Top bar ░░ -->
@@ -34,9 +34,26 @@
     </a>
     <div class="topbar-actions">
       <span class="status" id="apiStatus" title="Estado da API"><span class="dot"></span> <span id="apiStatusText">a ligar…</span></span>
+      <span id="userBox" class="user-box"></span>
       <button class="icon-btn" id="themeToggle" title="Alternar tema" aria-label="Alternar tema">◐</button>
     </div>
   </header>
+
+  <!-- ░░ Login ░░ -->
+  <div class="modal" id="loginModal">
+    <form class="card modal-card" id="loginForm">
+      <button type="button" class="modal-close" id="loginClose" aria-label="Fechar">×</button>
+      <h3>Identifique-se</h3>
+      <p class="muted">Para participar de licitações e receber o dossiê por email.</p>
+      <label>Nome <input id="l_nome" required placeholder="Seu nome" /></label>
+      <label>Email <input id="l_email" type="email" required placeholder="voce@empresa.com" /></label>
+      <div class="login-err" id="loginErr"></div>
+      <button class="btn btn-primary" type="submit">Entrar</button>
+    </form>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="scroll-hint" id="scrollHint"></div>
 
   <main class="wrap">
     <!-- ░░ Hero ░░ -->
@@ -58,13 +75,44 @@
     <!-- ░░ Radar ░░ -->
     <section class="panel is-active" id="tab-radar" role="tabpanel">
       <div class="toolbar">
-        <label class="slider">
+        <label class="slider" data-hint="Esconde oportunidades abaixo deste score de compatibilidade">
           Score mínimo <output id="minScoreOut">0</output>
           <input type="range" id="minScore" min="0" max="100" step="5" value="0" />
         </label>
-        <button class="btn" id="reloadRadar">Atualizar</button>
+        <label class="filter" data-hint="Filtra pelo valor total estimado da contratação">
+          Valor
+          <select id="fValor">
+            <option value="any">qualquer</option>
+            <option value="lt100k">até R$ 100 mil</option>
+            <option value="100k-1m">R$ 100 mil – 1 mi</option>
+            <option value="1m-10m">R$ 1 – 10 mi</option>
+            <option value="gt10m">acima de R$ 10 mi</option>
+          </select>
+        </label>
+        <label class="filter" data-hint="Filtra pelas categorias técnicas que o radar identificou no edital">
+          Categoria
+          <select id="fCategoria"><option value="all">todas</option></select>
+        </label>
+        <label class="filter" data-hint="Ordena os cards (as suas participações vêm sempre primeiro)">
+          Ordenar
+          <select id="fSort">
+            <option value="score">score</option>
+            <option value="data">data ↓</option>
+          </select>
+        </label>
+        <button class="btn" id="reloadRadar" data-hint="Recarrega os editais do PNCP (janela de 7 dias)">Atualizar</button>
       </div>
-      <div class="grid" id="radarGrid"><div class="empty">A carregar oportunidades…</div></div>
+      <div class="legend">
+        <span class="lg participada">participando</span>
+        <span class="lg nova">nova (&lt;48h)</span>
+        <span class="lg esf-federal">federal</span>
+        <span class="lg esf-estadual">estadual</span>
+        <span class="lg esf-municipal">municipal</span>
+      </div>
+      <div class="radar-layout">
+        <div class="grid" id="radarGrid"><div class="empty">A carregar oportunidades…</div></div>
+        <nav class="time-rail" id="timeRail" aria-label="Linha do tempo" hidden></nav>
+      </div>
     </section>
 
     <!-- ░░ Forecast ░░ -->
@@ -110,6 +158,6 @@
     <a href="docs" target="_blank" rel="noopener">API / OpenAPI ↗</a>
   </footer>
 
-  <script src="app.js?v=1"></script>
+  <script src="app.js?v=2"></script>
 </body>
 </html>

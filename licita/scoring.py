@@ -32,36 +32,45 @@ class Category:
     terms: tuple[str, ...]
 
 
-# Taxonomia default derivada de spec-0001. Pesos refletem a aderência ao core do
-# HeraclitusDB: imutabilidade/auditoria valem mais que "IA" genérica.
+# Nova Taxonomia Geral de TI: cobre todas as verticais principais.
+# Pesos equilibrados (1.0) pois o objetivo agora é abranger qualquer oportunidade de TI.
 DEFAULT_TAXONOMY: tuple[Category, ...] = (
-    Category("logs_imutaveis", 1.0, (
-        "log imutavel", "logs imutaveis", "registro imutavel", "registros imutaveis",
-        "imutavel", "imutabilidade", "event sourcing", "append-only", "append only",
-        "write-ahead", "wal", "ledger", "cadeia de blocos", "tamper", "worm",
+    Category("desenvolvimento_software", 1.0, (
+        "fabrica de software", "desenvolvimento", "api", "aplicativo", 
+        "mobile", "frontend", "backend", "sistema web", "sistemas web", "software",
+        "sustentacao de sistemas", "manutencao de software"
     )),
-    Category("auditoria", 1.0, (
-        "auditoria", "auditavel", "auditabilidade", "trilha de auditoria",
-        "rastreabilidade", "rastreavel", "proveniencia", "provenance", "log de acesso",
+    Category("infraestrutura_nuvem", 1.0, (
+        "cloud", "nuvem", "aws", "azure", "google cloud", "servidores", 
+        "virtualizacao", "datacenter", "kubernetes", "docker", "hospedagem"
     )),
-    Category("banco_de_dados", 0.95, (
-        "banco de dados", "base de dados", "sgbd", "database", "data lake", "datalake",
-        "big data", "postgres", "postgresql", "oracle", "sql server", "mysql",
-        "armazenamento de dados", "data warehouse",
+    Category("seguranca_informacao", 1.0, (
+        "firewall", "antivirus", "soc", "pentest", "seguranca da informacao", 
+        "lgpd", "criptografia", "seguranca cibernetica", "cyberseguranca"
     )),
-    Category("seguranca_compliance", 0.8, (
-        "lgpd", "seguranca da informacao", "siem", "criptografia", "criptografico",
-        "integridade", "merkle", "hash", "assinatura digital", "icp-brasil",
-        "conformidade", "gestao de riscos", "iso 27001",
+    Category("suporte_outsourcing", 1.0, (
+        "service desk", "help desk", "suporte tecnico", "outsourcing de impressao", 
+        "manutencao de computadores", "atendimento ao usuario", "suporte de ti"
     )),
-    Category("observabilidade", 0.7, (
-        "observabilidade", "monitoramento", "monitoracao", "telemetria", "metricas",
-        "logs", "logging", "elastic", "grafana", "prometheus",
+    Category("redes_conectividade", 1.0, (
+        "switches", "roteadores", "wi-fi", "wifi", "cabeamento estruturado", 
+        "fibra optica", "link de internet", "wan", "lan", "telecomunicacoes"
     )),
-    Category("inteligencia_artificial", 0.55, (
-        "inteligencia artificial", "aprendizado de maquina", "machine learning",
-        "busca vetorial", "embeddings", "rag", "modelo de linguagem", "llm",
-        "processamento de linguagem natural",
+    Category("hardware_ti", 1.0, (
+        "notebooks", "desktops", "computadores", "monitores", "servidores fisicos", 
+        "storage", "equipamentos de informatica", "perifericos"
+    )),
+    Category("banco_de_dados_dados", 1.0, (
+        "banco de dados", "big data", "data warehouse", "bi", "business intelligence", 
+        "engenharia de dados", "sgbd", "bancos de dados"
+    )),
+    Category("licenciamento", 1.0, (
+        "licenciamento", "licencas de software", "microsoft 365", "google workspace", 
+        "adobe", "oracle", "vmware", "red hat"
+    )),
+    Category("inteligencia_artificial", 1.0, (
+        "inteligencia artificial", "ia", "machine learning", "aprendizado de maquina",
+        "visao computacional", "processamento de linguagem natural", "llm"
     )),
 )
 

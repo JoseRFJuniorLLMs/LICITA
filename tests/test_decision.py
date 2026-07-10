@@ -18,7 +18,9 @@ def edital(objeto: str) -> Edital:
 
 # Edital "difícil": compatível tecnicamente, mas com barreiras de habilitação.
 HARD = edital(
-    "Solução de observabilidade e auditoria de logs imutáveis. "
+    "Fábrica de software com infraestrutura em nuvem, segurança da informação, "
+    "suporte técnico, redes switches, computadores de hardware, banco de dados, "
+    "licenciamento microsoft e inteligencia artificial. "
     "Exige capital social mínimo de R$ 3.000.000,00. "
     "Atestado de capacidade técnica comprovando volumetria de 50 TB/dia sustentada. "
     "Prazo de entrega do plano de trabalho de apenas 5 dias úteis."
@@ -79,7 +81,7 @@ class ViabilityTest(unittest.TestCase):
         self.assertLess(r.probability, r.compat / 100.0)
 
     def test_certification_missing_is_hard_block(self):
-        e = edital("auditoria com logs imutaveis. Exige certificacao ISO 27001.")
+        e = edital("desenvolvimento e nuvem. Exige certificacao ISO 27001.")
         r = self.engine.evaluate(e, CompanyProfile(certificacoes=frozenset()))
         self.assertEqual(r.decision, Decision.NAO_PARTICIPAR)
         r2 = self.engine.evaluate(e, CompanyProfile(certificacoes=frozenset({"ISO 27001"})))

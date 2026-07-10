@@ -115,6 +115,11 @@ def main(argv: list[str] | None = None) -> int:
                         help="[forecast] referência temporal (default: hoje)")
     parser.add_argument("--live", nargs=2, metavar=("DATA_INI", "DATA_FIM"),
                         help="Busca ao vivo no PNCP (YYYYMMDD YYYYMMDD)")
+    parser.add_argument("--modalidade", type=int, default=6, metavar="COD",
+                        help="[--live] codigoModalidadeContratacao — a API do PNCP "
+                             "EXIGE este parâmetro (default: 6 = Pregão Eletrônico)")
+    parser.add_argument("--max-paginas", type=int, default=5, metavar="N",
+                        help="[--live] máximo de páginas de 50 a buscar (default: 5)")
     parser.add_argument("--min-score", type=float, default=0.0)
     parser.add_argument("--ledger", metavar="PATH",
                         help="Grava eventos append-only (NDJSON) neste caminho")
@@ -130,7 +135,18 @@ def main(argv: list[str] | None = None) -> int:
         return forecast_cmd(args)
 
     if args.live:
-        editais = pncp.PNCPClient().fetch_contratacoes(args.live[0], args.live[1])
+        # A API real EXIGE codigoModalidadeContratacao (400 sem ele) e pagina a
+        # 50 itens — usar sempre o caminho paginado. Erros de rede → mensagem
+        # limpa em stderr, não traceback.
+        try:
+            editais = pncp.PNCPClient().fetch_contratacoes_all(
+                args.live[0], args.live[1],
+                codigo_modalidade=args.modalidade,
+                max_paginas=max(1, args.max_paginas),
+            )
+        except Exception as e:  # noqa: BLE001 — fronteira de CLI
+            print(f"erro: PNCP indisponível ou pedido inválido: {e}", file=sys.stderr)
+            return 2
     else:
         editais = pncp.load_fixture(FIXTURE)
 
