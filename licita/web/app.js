@@ -267,7 +267,7 @@ function renderStats(items, meta) {
     ["maybe", "Avaliar", by("avaliar")],
     ["no", "Ignorar", by("ignorar")],
   ].map(([c, k, v]) => `<div class="stat ${c}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")
-   + `<div class="stat total" style="grid-column:1/-1"><div class="k">Valor total mapeado ${janela ? `· ${janela}` : ""} ${meta?.fonte === "pncp-live" ? "· PNCP ao vivo" : ""}</div><div class="v">${brl(total)}</div></div>`;
+   + `<div class="stat total"><div class="k">Total ${janela ? `· ${janela}` : ""} ${meta?.fonte === "pncp-live" ? "· ao vivo" : ""}</div><div class="v">${brl(total)}</div></div>`;
 }
 
 /* ── Rail temporal (estilo Google Fotos) ────────────────── */
