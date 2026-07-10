@@ -73,13 +73,7 @@ function renderRadar() {
           </div>
           ${gauge(o.score.value, cls)}
         </div>
-        <div class="card-meta">
-          ${o.uf ? `<span class="chip uf">${esc(o.uf)}</span>` : ""}
-          <span class="chip val">${brl(o.valor_estimado)}</span>
-          ${link}
-        </div>
-        ${tags ? `<div class="tags">${tags}</div>` : ""}
-        <span class="rec ${cls}">${REC_LABEL[cls]}</span>
+
       </article>`;
     })
     .join("");
