@@ -157,7 +157,7 @@ def parse_pca_response(payload: dict[str, Any]) -> list[PcaItem]:
 class PcaClient:
     """Busca itens de PCA ao vivo no PNCP (GET /pca/usuario). Injetável em testes."""
 
-    def __init__(self, base_url: str | None = None, timeout: float = 25.0) -> None:
+    def __init__(self, base_url: str | None = None, timeout: float = 45.0) -> None:
         from .pncp import PNCP_BASE
 
         self.base_url = (base_url or PNCP_BASE).rstrip("/")

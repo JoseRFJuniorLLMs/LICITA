@@ -114,7 +114,7 @@ def parse_response(payload: dict[str, Any]) -> list[Edital]:
 class PNCPClient:
     """Busca contratações do PNCP. Injetável: `opener` permite testes/mocks."""
 
-    def __init__(self, base_url: str = PNCP_BASE, timeout: float = 20.0) -> None:
+    def __init__(self, base_url: str = PNCP_BASE, timeout: float = 45.0) -> None:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
