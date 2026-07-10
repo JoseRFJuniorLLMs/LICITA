@@ -46,18 +46,28 @@ function renderUserBox() {
     localStorage.removeItem("licita-user"); USER = null; renderUserBox(); renderRadar();
   });
 }
+let LOGIN_MODE = "login"; // "login" | "register"
 function openLogin(afterLogin) {
   $("#loginModal").classList.add("open");
   $("#loginModal").dataset.pending = "";
   if (typeof afterLogin === "string") $("#loginModal").dataset.pending = afterLogin;
-  $("#l_nome").focus();
+  $("#l_user").focus();
+}
+function setLoginMode(mode) {
+  LOGIN_MODE = mode;
+  $("#loginTitle").textContent = mode === "login" ? "Entrar" : "Criar conta";
+  $("#loginSubmit").textContent = mode === "login" ? "Entrar" : "Criar conta";
+  $("#loginToggle").textContent = mode === "login" ? "criar conta nova" : "já tenho conta";
+  $("#loginErr").textContent = "";
 }
 async function doLogin(ev) {
   ev.preventDefault();
-  const name = $("#l_nome").value.trim(), email = $("#l_email").value.trim();
+  const username = $("#l_user").value.trim(), password = $("#l_pass").value;
+  const email = $("#l_email").value.trim();
   const errEl = $("#loginErr"); errEl.textContent = "";
   try {
-    USER = await postJson("/users/register", { name, email });
+    USER = await postJson(LOGIN_MODE === "login" ? "/auth/login" : "/auth/register",
+      { username, password, email });
     localStorage.setItem("licita-user", JSON.stringify(USER));
     $("#loginModal").classList.remove("open");
     renderUserBox();
@@ -74,14 +84,21 @@ async function loadClaims() {
     CLAIMS = new Map(rows.map((p) => [p.bid_id, p]));
   } catch { /* radar continua sem claims */ }
 }
+const authHeaders = () => (USER?.token ? { Authorization: `Bearer ${USER.token}` } : {});
+const postAuth = (path, body) =>
+  api(path, { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(body) });
+
 async function claimBid(bidId) {
   if (!USER) { openLogin(bidId); return; }
   const o = RADAR_CACHE.find((x) => x.bid_id === bidId);
   try {
-    await postJson("/participations", { user_id: USER.user_id, bid_id: bidId, edital: o || {} });
+    const r = await postAuth("/participations", { bid_id: bidId, edital: o || {} });
     await loadClaims(); renderRadar();
-    toast(`Você está participando — dossiê enviado para ${USER.email}`);
+    toast(r.email === "queued"
+      ? `Você está participando — dossiê enviado para ${USER.email}`
+      : "Você está participando — adicione um email no login para receber o dossiê");
   } catch (e) {
+    if (e.status === 401) { USER = null; localStorage.removeItem("licita-user"); renderUserBox(); openLogin(bidId); return; }
     toast(e.status === 409 ? `⚠ ${e.message}` : `Falha: ${e.message}`, true);
     await loadClaims(); renderRadar();
   }
@@ -89,9 +106,12 @@ async function claimBid(bidId) {
 async function releaseBid(bidId) {
   if (!USER) return;
   try {
-    await postJson("/participations/release", { user_id: USER.user_id, bid_id: bidId });
+    await postAuth("/participations/release", { bid_id: bidId });
     await loadClaims(); renderRadar();
-  } catch (e) { toast(`Falha: ${e.message}`, true); }
+  } catch (e) {
+    if (e.status === 401) { USER = null; localStorage.removeItem("licita-user"); renderUserBox(); openLogin(); return; }
+    toast(`Falha: ${e.message}`, true);
+  }
 }
 function toast(msg, isErr = false) {
   const t = $("#toast");
@@ -409,6 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#reloadForecast").addEventListener("click", loadForecast);
   $("#simForm").addEventListener("submit", runSim);
   $("#loginForm").addEventListener("submit", doLogin);
+  $("#loginToggle").addEventListener("click", () => setLoginMode(LOGIN_MODE === "login" ? "register" : "login"));
   $("#loginClose").addEventListener("click", () => $("#loginModal").classList.remove("open"));
   pingHealth(); loadRadar();
   setInterval(async () => { await loadClaims(); if ($("#tab-radar").classList.contains("is-active")) renderRadar(); }, 60_000);

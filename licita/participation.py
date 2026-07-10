@@ -11,8 +11,11 @@ conflito até o primeiro libertar.
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import re
+import secrets
 import threading
 import time
 import unicodedata
@@ -22,9 +25,13 @@ from typing import Any
 
 
 def _slug(text: str) -> str:
-    """user_id determinístico a partir do email (estável entre sessões)."""
+    """user_id determinístico a partir do username (estável entre sessões)."""
     norm = unicodedata.normalize("NFKD", text.lower()).encode("ascii", "ignore").decode()
     return re.sub(r"[^a-z0-9]+", "-", norm).strip("-") or "user"
+
+
+def _hash_password(password: str, salt: str) -> str:
+    return hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
 
 
 @dataclass
@@ -32,9 +39,14 @@ class User:
     user_id: str
     name: str
     email: str
+    username: str = ""
+    pass_salt: str = ""
+    pass_hash: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        return {"user_id": self.user_id, "name": self.name, "email": self.email}
+        # NUNCA expor hash/salt na API.
+        return {"user_id": self.user_id, "name": self.name, "email": self.email,
+                "username": self.username}
 
 
 @dataclass
@@ -89,8 +101,13 @@ class ParticipationStore:
     def _apply(self, ev: dict[str, Any]) -> None:
         kind = ev.get("kind")
         if kind == "UserRegistered":
-            u = User(ev["user_id"], ev["name"], ev["email"])
-            self.users[u.user_id] = u
+            u = User(
+                ev["user_id"], ev["name"], ev.get("email", ""),
+                username=ev.get("username", ""),
+                pass_salt=ev.get("pass_salt", ""),
+                pass_hash=ev.get("pass_hash", ""),
+            )
+            self.users[u.user_id] = u  # last-write-wins: re-registo atualiza
         elif kind == "ParticipationClaimed":
             self.claims[ev["bid_id"]] = Participation(
                 bid_id=ev["bid_id"],
@@ -103,19 +120,48 @@ class ParticipationStore:
             self.claims.pop(ev["bid_id"], None)
 
     # ── API ────────────────────────────────────────────────────────────────
-    def register_user(self, name: str, email: str) -> User:
-        """Regista (ou devolve) o utilizador. Idempotente por email."""
-        name, email = name.strip(), email.strip().lower()
-        if not name or "@" not in email:
-            raise ValueError("nome e email válidos são obrigatórios")
-        user_id = _slug(email)
+    def register_user(self, username: str, password: str, name: str = "", email: str = "") -> User:
+        """Regista o utilizador com senha (hash+salt). Username já usado → ValueError."""
+        username = username.strip().lower()
+        if not username or not password:
+            raise ValueError("usuário e senha são obrigatórios")
+        user_id = _slug(username)
         with self._lock:
-            existing = self.users.get(user_id)
-            if existing and existing.name == name:
-                return existing
+            if user_id in self.users:
+                raise ValueError(f"usuário '{username}' já existe")
+            salt = secrets.token_hex(8)
             ev = {
                 "kind": "UserRegistered", "user_id": user_id,
-                "name": name, "email": email, "ts": time.time(),
+                "username": username,
+                "name": (name or username).strip().title(),
+                "email": email.strip().lower(),
+                "pass_salt": salt, "pass_hash": _hash_password(password, salt),
+                "ts": time.time(),
+            }
+            self._append(ev)
+            self._apply(ev)
+            return self.users[user_id]
+
+    def authenticate(self, username: str, password: str) -> User | None:
+        """Valida credenciais. None se usuário desconhecido ou senha errada."""
+        user = self.users.get(_slug(username.strip().lower()))
+        if user is None or not user.pass_hash:
+            return None
+        ok = hmac.compare_digest(_hash_password(password, user.pass_salt), user.pass_hash)
+        return user if ok else None
+
+    def set_email(self, user_id: str, email: str) -> User:
+        """Atualiza o email (novo evento UserRegistered — last-write-wins)."""
+        with self._lock:
+            u = self.users.get(user_id)
+            if u is None:
+                raise ValueError(f"utilizador desconhecido: {user_id}")
+            if "@" not in email:
+                raise ValueError("email inválido")
+            ev = {
+                "kind": "UserRegistered", "user_id": u.user_id, "username": u.username,
+                "name": u.name, "email": email.strip().lower(),
+                "pass_salt": u.pass_salt, "pass_hash": u.pass_hash, "ts": time.time(),
             }
             self._append(ev)
             self._apply(ev)

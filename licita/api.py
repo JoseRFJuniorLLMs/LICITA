@@ -17,7 +17,9 @@ import time
 from datetime import date, timedelta
 from pathlib import Path
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+import secrets
+
+from fastapi import BackgroundTasks, FastAPI, Header, HTTPException
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -263,32 +265,68 @@ def forecast_live(
     }
 
 
-# ── Utilizadores & Participações ───────────────────────────────────────────
+# ── Utilizadores & Participações (auth por token de sessão) ────────────────
+
+# token → user_id, em memória (re-login após restart do serviço).
+_sessions: dict[str, str] = {}
+
+
+def _auth_user(authorization: str | None) -> str:
+    """Resolve o Bearer token numa sessão válida → user_id, ou 401."""
+    if authorization and authorization.startswith("Bearer "):
+        uid = _sessions.get(authorization[7:])
+        if uid:
+            return uid
+    raise HTTPException(status_code=401, detail="sessão inválida — faça login")
 
 
 class RegisterIn(BaseModel):
-    name: str
-    email: str
+    username: str
+    password: str
+    name: str = ""
+    email: str = ""
+
+
+class LoginIn(BaseModel):
+    username: str
+    password: str
+    email: str = ""  # opcional: atualiza o email para receber dossiês
 
 
 class ClaimIn(BaseModel):
-    user_id: str
     bid_id: str
     edital: dict = Field(default_factory=dict)  # snapshot p/ o email/dossiê
 
 
 class ReleaseIn(BaseModel):
-    user_id: str
     bid_id: str
 
 
-@app.post("/users/register")
-def register_user(body: RegisterIn) -> dict:
-    """Regista (ou reconhece) o utilizador. Idempotente por email."""
+def _session_for(user) -> dict:
+    token = secrets.token_urlsafe(24)
+    _sessions[token] = user.user_id
+    return {**user.to_dict(), "token": token}
+
+
+@app.post("/auth/register", status_code=201)
+def auth_register(body: RegisterIn) -> dict:
+    """Cria a conta (usuário+senha) e já devolve uma sessão."""
     try:
-        return _participations.register_user(body.name, body.email).to_dict()
+        user = _participations.register_user(body.username, body.password, body.name, body.email)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+    return _session_for(user)
+
+
+@app.post("/auth/login")
+def auth_login(body: LoginIn) -> dict:
+    """Valida usuário+senha → sessão (token). Email opcional atualiza o cadastro."""
+    user = _participations.authenticate(body.username, body.password)
+    if user is None:
+        raise HTTPException(status_code=401, detail="usuário ou senha inválidos")
+    if body.email and "@" in body.email and body.email.strip().lower() != user.email:
+        user = _participations.set_email(user.user_id, body.email)
+    return _session_for(user)
 
 
 @app.get("/participations")
@@ -298,17 +336,20 @@ def list_participations() -> list[dict]:
 
 
 @app.post("/participations", status_code=201)
-def claim_participation(body: ClaimIn, background: BackgroundTasks) -> dict:
-    """Reclama a licitação para o utilizador (exclusivo) e envia-lhe o dossiê por email."""
+def claim_participation(
+    body: ClaimIn, background: BackgroundTasks, authorization: str | None = Header(default=None)
+) -> dict:
+    """Reclama a licitação para o utilizador da sessão (exclusivo) + dossiê por email."""
+    user_id = _auth_user(authorization)
     try:
-        p = _participations.claim(body.bid_id, body.user_id, body.edital)
+        p = _participations.claim(body.bid_id, user_id, body.edital)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     except ConflictError as e:
         raise HTTPException(status_code=409, detail=str(e))
-    user = _participations.get_user(body.user_id)
-    email_status = "skipped"
-    if user and body.edital:
+    user = _participations.get_user(user_id)
+    email_status = "sem_email"
+    if user and user.email and body.edital:
         assunto, corpo = mailer.build_participation_email(user.name, body.edital)
         # Em background: o claim não espera pelo SMTP.
         background.add_task(mailer.send_email, user.email, assunto, corpo, _DATA_DIR / "outbox")
@@ -317,10 +358,13 @@ def claim_participation(body: ClaimIn, background: BackgroundTasks) -> dict:
 
 
 @app.post("/participations/release")
-def release_participation(body: ReleaseIn) -> dict:
-    """Liberta a licitação (só o dono)."""
+def release_participation(
+    body: ReleaseIn, authorization: str | None = Header(default=None)
+) -> dict:
+    """Liberta a licitação (só o dono da sessão)."""
+    user_id = _auth_user(authorization)
     try:
-        released = _participations.release(body.bid_id, body.user_id)
+        released = _participations.release(body.bid_id, user_id)
     except ConflictError as e:
         raise HTTPException(status_code=409, detail=str(e))
     return {"released": released}

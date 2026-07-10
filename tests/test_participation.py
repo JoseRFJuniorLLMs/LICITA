@@ -13,26 +13,44 @@ def _store(tmp: str) -> ParticipationStore:
 
 
 class TestParticipationStore(unittest.TestCase):
-    def test_register_is_idempotent_by_email(self):
+    def test_register_and_authenticate(self):
         with tempfile.TemporaryDirectory() as tmp:
             s = _store(tmp)
-            a = s.register_user("Ana", "ana@x.com")
-            b = s.register_user("Ana", "ANA@X.COM ")
-            self.assertEqual(a.user_id, b.user_id)
+            u = s.register_user("junior", "junior")
+            self.assertEqual(u.username, "junior")
+            self.assertEqual(u.name, "Junior")
+            self.assertIsNotNone(s.authenticate("junior", "junior"))
+            self.assertIsNone(s.authenticate("junior", "errada"))
+            self.assertIsNone(s.authenticate("naoexiste", "x"))
+            # senha nunca em claro no log
+            raw = (Path(tmp) / "part.ndjson").read_text(encoding="utf-8")
+            self.assertNotIn('"junior"', raw.split('"pass_hash"')[1][:200])
 
-    def test_register_rejects_invalid(self):
+    def test_register_rejects_duplicate_and_invalid(self):
         with tempfile.TemporaryDirectory() as tmp:
             s = _store(tmp)
+            s.register_user("ana", "ana")
             with self.assertRaises(ValueError):
-                s.register_user("", "ana@x.com")
+                s.register_user("ana", "outra")  # duplicado
             with self.assertRaises(ValueError):
-                s.register_user("Ana", "sem-arroba")
+                s.register_user("", "x")
+            with self.assertRaises(ValueError):
+                s.register_user("x", "")
+
+    def test_set_email_updates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            s = _store(tmp)
+            u = s.register_user("nani", "nani")
+            self.assertEqual(u.email, "")
+            u2 = s.set_email(u.user_id, "Nani@Empresa.com")
+            self.assertEqual(u2.email, "nani@empresa.com")
+            self.assertIsNotNone(s.authenticate("nani", "nani"))  # senha preservada
 
     def test_claim_is_exclusive(self):
         with tempfile.TemporaryDirectory() as tmp:
             s = _store(tmp)
-            ana = s.register_user("Ana", "ana@x.com")
-            beto = s.register_user("Beto", "beto@x.com")
+            ana = s.register_user("ana", "ana")
+            beto = s.register_user("beto", "beto")
             s.claim("BID-1/2026", ana.user_id, {"objeto": "x"})
             with self.assertRaises(ConflictError):
                 s.claim("BID-1/2026", beto.user_id)
@@ -43,8 +61,8 @@ class TestParticipationStore(unittest.TestCase):
     def test_release_only_by_owner_then_reclaimable(self):
         with tempfile.TemporaryDirectory() as tmp:
             s = _store(tmp)
-            ana = s.register_user("Ana", "ana@x.com")
-            beto = s.register_user("Beto", "beto@x.com")
+            ana = s.register_user("ana", "ana")
+            beto = s.register_user("beto", "beto")
             s.claim("B", ana.user_id)
             with self.assertRaises(ConflictError):
                 s.release("B", beto.user_id)
@@ -56,14 +74,14 @@ class TestParticipationStore(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "part.ndjson"
             s1 = ParticipationStore(path)
-            ana = s1.register_user("Ana", "ana@x.com")
+            ana = s1.register_user("ana", "ana")
             s1.claim("B1", ana.user_id)
             s1.claim("B2", ana.user_id)
             s1.release("B2", ana.user_id)
             s2 = ParticipationStore(path)  # replay do log
             self.assertIn("B1", s2.claims)
             self.assertNotIn("B2", s2.claims)
-            self.assertIn(ana.user_id, s2.users)
+            self.assertIsNotNone(s2.authenticate("ana", "ana"))  # senha sobrevive
 
 
 class TestMailer(unittest.TestCase):

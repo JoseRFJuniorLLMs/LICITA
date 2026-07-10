@@ -6,7 +6,7 @@
   <title>Heraclitus Gov Radar — Licitações</title>
   <meta name="description" content="Radar de licitações públicas: captura, scoring de compatibilidade e decisão Go/No-Go sobre editais do PNCP." />
   <link rel="icon" href="logo.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles.css?v=2" />
+  <link rel="stylesheet" href="styles.css?v=3" />
 </head>
 <body>
   <!-- ░░ Top bar ░░ -->
@@ -43,12 +43,15 @@
   <div class="modal" id="loginModal">
     <form class="card modal-card" id="loginForm">
       <button type="button" class="modal-close" id="loginClose" aria-label="Fechar">×</button>
-      <h3>Identifique-se</h3>
+      <h3 id="loginTitle">Entrar</h3>
       <p class="muted">Para participar de licitações e receber o dossiê por email.</p>
-      <label>Nome <input id="l_nome" required placeholder="Seu nome" /></label>
-      <label>Email <input id="l_email" type="email" required placeholder="voce@empresa.com" /></label>
+      <label>Usuário <input id="l_user" required autocomplete="username" placeholder="seu usuário" /></label>
+      <label>Senha <input id="l_pass" type="password" required autocomplete="current-password" placeholder="sua senha" /></label>
+      <label id="l_emailWrap">Email para dossiês <span class="muted">(opcional)</span>
+        <input id="l_email" type="email" placeholder="voce@empresa.com" /></label>
       <div class="login-err" id="loginErr"></div>
-      <button class="btn btn-primary" type="submit">Entrar</button>
+      <button class="btn btn-primary" type="submit" id="loginSubmit">Entrar</button>
+      <button class="btn btn-ghost" type="button" id="loginToggle" style="width:100%;margin-top:8px">criar conta nova</button>
     </form>
   </div>
 
@@ -158,6 +161,6 @@
     <a href="docs" target="_blank" rel="noopener">API / OpenAPI ↗</a>
   </footer>
 
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
