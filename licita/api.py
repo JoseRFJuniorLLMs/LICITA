@@ -55,9 +55,50 @@ def _cached(key: str, builder) -> tuple[list[dict], bool]:
     hit = _live_cache.get(key)
     if hit and now - hit[0] < _LIVE_TTL_SECS:
         return hit[1], True
-    rows = builder()
+    try:
+        rows = builder()
+    except Exception:
+        # Stale-while-error: o PNCP é instável — cache velha é melhor do que
+        # nenhum dado. Só propaga se nunca tivermos conseguido nada.
+        if hit:
+            return hit[1], True
+        raise
     _live_cache[key] = (now, rows)
     return rows, False
+
+
+def _default_radar_build() -> list[dict]:
+    """O build do radar live com os defaults (o que o frontend pede)."""
+    fim = date.today()
+    inicio = fim - timedelta(days=7)
+    editais = _pncp_client.fetch_contratacoes_all(
+        inicio.strftime("%Y%m%d"), fim.strftime("%Y%m%d"), codigo_modalidade=6, max_paginas=3,
+    )
+    return [o.to_dict() for o in Radar(_scorer).analyze(editais)]
+
+
+def _warm_loop() -> None:
+    """Aquece a cache do radar em background: o utilizador NUNCA espera o PNCP.
+
+    Opt-in via LICITA_WARM_LIVE=1 (ligado no systemd de produção; OFF em testes
+    para não puxar rede no import).
+    """
+    while True:
+        try:
+            fim = date.today()
+            inicio = fim - timedelta(days=7)
+            key = f"radar:{inicio}:{fim}:6:3"
+            rows = _default_radar_build()
+            _live_cache[key] = (time.monotonic(), rows)
+        except Exception:
+            pass  # próxima volta tenta de novo; a cache velha continua a servir
+        time.sleep(_LIVE_TTL_SECS)
+
+
+if os.environ.get("LICITA_WARM_LIVE") == "1":
+    import threading
+
+    threading.Thread(target=_warm_loop, daemon=True, name="licita-warm").start()
 
 
 class EditalIn(BaseModel):

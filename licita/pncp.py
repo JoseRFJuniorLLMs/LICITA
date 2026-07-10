@@ -138,11 +138,18 @@ class PNCPClient:
             params["codigoModalidadeContratacao"] = codigo_modalidade
         url = f"{self.base_url}/contratacoes/publicacao?" + urllib.parse.urlencode(params)
         req = urllib.request.Request(url, headers={"Accept": "application/json"})
-        with urllib.request.urlopen(req, timeout=self.timeout) as resp:  # noqa: S310 (trusted gov host)
-            body = resp.read().decode("utf-8")
-        if not body.strip():  # PNCP devolve corpo vazio quando não há dados (204-like)
-            return {"data": [], "totalPaginas": 0}
-        return json.loads(body)
+        # O PNCP falha/atrasa intermitentemente — 1 retry salva a maioria.
+        last: Exception | None = None
+        for _ in range(2):
+            try:
+                with urllib.request.urlopen(req, timeout=self.timeout) as resp:  # noqa: S310 (gov host)
+                    body = resp.read().decode("utf-8")
+                if not body.strip():  # corpo vazio quando não há dados (204-like)
+                    return {"data": [], "totalPaginas": 0}
+                return json.loads(body)
+            except Exception as e:  # noqa: BLE001 — retry de fronteira de rede
+                last = e
+        raise last  # type: ignore[misc]
 
     def fetch_contratacoes(
         self,
