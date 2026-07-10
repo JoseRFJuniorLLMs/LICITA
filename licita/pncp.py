@@ -36,6 +36,16 @@ def _get(d: dict[str, Any], *path: str, default: Any = None) -> Any:
     return cur
 
 
+def _build_pncp_url(item: dict[str, Any]) -> str | None:
+    """Constrói o link do edital no portal PNCP."""
+    ano = item.get("anoCompra")
+    seq = item.get("sequencialCompra")
+    cnpj = _get(item, "orgaoEntidade", "cnpj")
+    if ano and seq and cnpj:
+        return f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{seq}"
+    return None
+
+
 def parse_item(item: dict[str, Any]) -> Edital:
     """Normaliza um item da API do PNCP num `Edital`. Defensivo por design."""
     bid_id = (
@@ -63,7 +73,7 @@ def parse_item(item: dict[str, Any]) -> Edital:
         or item.get("dataPublicacaoPncp")
         or item.get("dataAbertura")
     )
-    url = item.get("linkSistemaOrigem") or item.get("url")
+    url = item.get("linkSistemaOrigem") or item.get("url") or _build_pncp_url(item)
     # Texto para o scorer: objeto + informação/itens quando presentes.
     extra = item.get("informacaoComplementar") or item.get("descricao") or ""
     itens = item.get("itens") or []
